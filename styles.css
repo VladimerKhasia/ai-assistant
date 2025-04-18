@@ -1,0 +1,320 @@
+/* Reset default styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    line-height: 1.6;
+    color: #333;
+    background-color: #f4f4f9;
+    padding: 20px;
+}
+
+/* Header styling */
+header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    margin-bottom: 40px;
+}
+
+header h1 {
+    font-size: 2.5em;
+    color: #2c3e50;
+}
+
+.settings-icon {
+    position: absolute;
+    right: 0;
+    background: none;
+    border: none;
+    font-size: 1.5em;
+    cursor: pointer;
+    color: #2c3e50;
+    transition: color 0.3s;
+    margin-right: 20px;
+}
+
+.settings-icon:hover {
+    color: #0099ff;
+}
+
+/* Modal styling */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    margin: 10px;
+}
+
+.close {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 1.5em;
+    cursor: pointer;
+    color: #2c3e50;
+}
+
+.close:hover {
+    color: #fc0097;
+}
+
+/* Settings section */
+.settings-section {
+    margin-top: 20px;
+}
+
+.settings-section h2 {
+    font-size: 1.8em;
+    margin-bottom: 15px;
+    color: #2c3e50;
+}
+
+.settings-section label {
+    display: block;
+    font-size: 1em;
+    margin: 10px 0 5px;
+    color: #2c3e50;
+}
+
+.settings-section textarea,
+.settings-section input[type="number"] {
+    width: 100%;
+    padding: 10px;
+    font-size: 1em;
+    border: 1px solid #dcdcdc;
+    border-radius: 8px;
+    background-color: #fff;
+}
+
+.settings-section textarea {
+    resize: vertical;
+    height: 100px;
+}
+
+.settings-section input[type="number"] {
+    width: 150px;
+}
+
+.settings-section textarea:focus,
+.settings-section input[type="number"]:focus {
+    outline: none;
+    border-color: #0099ff;
+    box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
+}
+
+.note {
+    font-size: 0.9em;
+    color: #7f8c8d;
+    margin: 10px 0;
+}
+
+.save-button {
+    display: block;
+    width: 100%;
+    margin: 20px 0 10px;
+    padding: 12px 20px;
+    font-size: 1.1em;
+    font-weight: bold;
+    color: #fff;
+    background-color: #0089 situations;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.save-button:hover {
+    background-color: #fc0097;
+}
+
+.save-button:disabled {
+    background-color: #bdc3c7;
+    cursor: not-allowed;
+}
+
+/* Main content */
+main {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+/* Output section */
+.output-section {
+    margin-bottom: 40px;
+}
+
+.output-box {
+    width: 100%;
+    min-height: 200px;
+    padding: 15px;
+    font-size: 1em;
+    border: 1px solid #dcdcdc;
+    border-radius: 8px;
+    background-color: #fff;
+    overflow-y: auto;
+    max-height: 400px;
+    line-height: 1.5;
+}
+
+/* Conversation messages */
+.user-message, .model-message, .error-message {
+    margin-bottom: 15px;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.user-message {
+    background-color: #e6f3ff;
+    border-left: 4px solid #0099ff;
+}
+
+.model-message {
+    background-color: #f9f9f9;
+    border-left: 4px solid #2c3e50;
+}
+
+.error-message {
+    background-color: #ffe6e6;
+    border-left: 4px solid #e74c3c;
+    color: #e74c3c;
+}
+
+/* Markdown styles */
+.output-box ul {
+    list-style-type: disc;
+    margin: 15px 0 15px 25px;
+    padding-left: 15px;
+}
+
+.output-box li {
+    margin-bottom: 8px;
+}
+
+.output-box strong {
+    font-weight: bold;
+}
+
+.output-box p {
+    margin-bottom: 12px;
+}
+
+.output-box br {
+    display: block;
+    margin-bottom: 12px;
+}
+
+/* Input section */
+.input-section {
+    margin-bottom: 40px;
+}
+
+textarea#input {
+    width: 100%;
+    height: 40px;
+    padding: 15px;
+    font-size: 1em;
+    border: 1px solid #dcdcdc;
+    border-radius: 8px;
+    resize: vertical;
+    background-color: #fff;
+}
+
+textarea#input:focus {
+    outline: none;
+    border-color: #0099ff;
+    box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
+}
+
+button#submit {
+    display: block;
+    margin: 15px 0;
+    padding: 12px 20px;
+    font-size: 1.1em;
+    color: #fff;
+    background-color: #0089f9;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+button#submit:hover {
+    background-color: #fc0097;
+}
+
+button#submit:disabled {
+    background-color: #bdc3c7;
+    cursor: not-allowed;
+}
+
+/* Footer */
+footer {
+    text-align: center;
+    margin-top: 40px;
+    color: #7f8c8d;
+}
+
+/* Responsive design */
+@media (max-width: 600px) {
+    header h1 {
+        font-size: 2em;
+    }
+
+    .settings-icon {
+        font-size: 1.3em;
+        margin-right: 10px;
+    }
+
+    .modal-content {
+        width: 95%;
+        max-height: 85vh;
+        margin: 5px;
+    }
+
+    .settings-section h2 {
+        font-size: 1.5em;
+    }
+
+    .settings-section textarea,
+    .settings-section input[type="number"],
+    textarea#input,
+    .output-box {
+        font-size: 0.9em;
+    }
+
+    .settings-section input[type="number"],
+    .save-button {
+        width: 100%;
+    }
+
+    button#submit {
+        font-size: 1em;
+        padding: 10px 15px;
+    }
+}
+

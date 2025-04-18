@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#f4f4f9">
+    <meta name="description" content="AI Assistant for event planning and more">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="AI Assistant">
+    <title>AI Assistant</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/png" href="assets/icon-192.png">
+    <link rel="apple-touch-icon" href="assets/icon-192.png">
+    <link rel="manifest" href="manifest.json">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+    <header>
+        <h1>AI Assistant</h1>
+        <button id="settings-toggle" class="settings-icon" title="Open Settings">☰</button>
+    </header>
+    <main>
+        <div id="settings-modal" class="modal">
+            <div class="modal-content">
+                <span id="close-modal" class="close">×</span>
+                <h2>Settings - AI Assistant</h2>
+                <div class="settings-section">
+                    <label for="systemPrompt">System Prompt:</label>
+                    <textarea id="systemPrompt" placeholder="Enter system prompt" rows="4">You are an expert event planning assistant. Provide concise, practical, and creative suggestions for event planning, covering budgeting, venue, scheduling, vendors, and themes. Ask clarifying questions if needed. Keep responses clear, friendly, and professional.</textarea>
+                    <label for="temperature">Temperature (0.0 to 1.0):</label>
+                    <input type="number" id="temperature" step="0.1" min="0" max="1" value="0.2">
+                    <label for="topK">Top-K (1 to 100):</label>
+                    <input type="number" id="topK" min="1" max="100" value="50">
+                    <p class="note">Note: Click 'Save Settings' to apply changes, reload the model, and reset the conversation history. Scroll down if the button is not visible.</p>
+                    <button id="save-settings" class="save-button">Save Settings</button>
+                </div>
+            </div>
+        </div>
+        <section class="output-section">
+            <div id="output" class="output-box"></div>
+        </section>
+        <section class="input-section">
+            <textarea id="input" placeholder="Enter your query (e.g., event details, legal advice, etc.)"></textarea>
+            <button id="submit" disabled>Get Response</button>
+        </section>
+    </main>
+    <footer>
+        <p>© 2025 AI Assistant</p>
+    </footer>
+    <script type="module" src="index.js"></script>
+</body>
+</html>
