@@ -11,7 +11,7 @@ const settingsModal = document.getElementById('settings-modal');
 const closeModal = document.getElementById('close-modal');
 const saveSettings = document.getElementById('save-settings');
 
-const modelFileName = "https://huggingface.co/litert-community/Gemma3-1B-IT/resolve/main/gemma3-1b-it-int4.task" //"assets/gemma3-1b-it-int4.task"; // Ensure this file exists
+const modelFileName = "https://huggingface.co/litert-community/Gemma3-1B-IT/resolve/main/gemma3-1b-it-int4.tflite?download=true" //"assets/gemma3-1b-it-int4.task"; // Ensure this file exists
 
 let conversationHistory = []; // For model input (last 2 turns)
 let uiConversationHistory = []; // For UI display (all turns)
@@ -270,7 +270,7 @@ async function runDemo() {
 
         submit.textContent = 'Loading the model...';
         try {
-            const response = await fetch(modelFileName, { cache: 'force-cache' });
+            // const response = await fetch(modelFileName, { cache: 'force-cache' });
             if (!response.ok) {
                 throw new Error(`Model file not found at ${modelFileName}`);
             }
@@ -281,7 +281,7 @@ async function runDemo() {
             output.innerHTML = '<div class="error-message">Unable to load model. Please check your internet connection.</div>';
             return;
         }
-
+    
         llmInference = await LlmInference.createFromOptions(genaiFileset, {
             baseOptions: {modelAssetPath: modelFileName},
             maxTokens: 2048,
