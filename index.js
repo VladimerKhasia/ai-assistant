@@ -11,7 +11,7 @@ const settingsModal = document.getElementById('settings-modal');
 const closeModal = document.getElementById('close-modal');
 const saveSettings = document.getElementById('save-settings');
 
-const modelFileName = "https://huggingface.co/litert-community/Gemma3-1B-IT/resolve/main/gemma3-1b-it-int4.tflite?download=true" //"assets/gemma3-1b-it-int4.task"; // Ensure this file exists
+const modelFileName = "https://huggingface.co/litert-community/Gemma3-1B-IT/resolve/main/gemma3-1b-it-int4.task?download=true" //"assets/gemma3-1b-it-int4.task"; // Ensure this file exists
 
 let conversationHistory = []; // For model input (last 2 turns)
 let uiConversationHistory = []; // For UI display (all turns)
