@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#f4f4f9">
-    <meta name="description" content="AI Assistant for event planning and more">
+    <meta name="description" content="AI Assistant">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="AI Assistant">
@@ -14,10 +14,12 @@
     <link rel="apple-touch-icon" href="assets/icon-192.png">
     <link rel="manifest" href="manifest.json">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Add PWABuilder script -->
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@pwabuilder/pwainstall"></script>
 </head>
 <body>
     <header>
-        <h1>AI Assistant</h1>
+        <h1>AI Assistant</h1>        
         <button id="settings-toggle" class="settings-icon" title="Open Settings">☰</button>
     </header>
     <main>
@@ -44,6 +46,18 @@
             <textarea id="input" placeholder="Enter your query (e.g., event details, legal advice, etc.)"></textarea>
             <button id="submit" disabled>Get Response</button>
         </section>
+        <!-- Full-screen pop-up modal -->
+        <div id="install-popup" class="modal-overlay">
+            <div class="modal-content">
+                <span id="close-popup" class="close">&times;</span>
+                <h2>Install AI Assistant</h2>
+                <p>Experience our AI-powered assistant offline! Install now for quick access from your home screen.</p>
+                <pwa-install id="installComponent" install-description="Install AI Assistant for offline use"></pwa-install>
+                <p id="installNote" style="display: none; font-size: 0.9em;">
+                    Not supported in your browser. On iOS, use Safari and select "Add to Home Screen" from the Share menu.
+                </p>
+            </div>
+        </div>
     </main>
     <footer>
         <p>© 2025 AI Assistant</p>

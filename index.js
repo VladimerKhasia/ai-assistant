@@ -11,10 +11,10 @@ const settingsModal = document.getElementById('settings-modal');
 const closeModal = document.getElementById('close-modal');
 const saveSettings = document.getElementById('save-settings');
 
-const modelFileName = './assets/gemma3-1b-it-int4.task'; // Relative path for GitHub Pages
+const modelFileName = './assets/gemma3-1b-it-int4.task';
 
-let conversationHistory = []; // For model input (last 2 turns)
-let uiConversationHistory = []; // For UI display (all turns)
+let conversationHistory = [];
+let uiConversationHistory = [];
 let llmInference;
 let currentSettings = {
     systemPrompt: systemPromptInput.value.trim(),
@@ -24,7 +24,6 @@ let currentSettings = {
 
 console.log('Initial settings:', currentSettings);
 
-// Configure marked.js for better Markdown handling
 marked.setOptions({
     breaks: true,
     gfm: true,
@@ -32,9 +31,6 @@ marked.setOptions({
     headerIds: false
 });
 
-/**
- * Register service worker for PWA
- */
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('./service-worker.js')
@@ -47,9 +43,6 @@ if ('serviceWorker' in navigator) {
     });
 }
 
-/**
- * Render the full UI conversation history as HTML with Markdown
- */
 function renderConversation() {
     output.innerHTML = '';
     uiConversationHistory.forEach(turn => {
@@ -73,9 +66,6 @@ function renderConversation() {
     output.scrollTop = output.scrollHeight;
 }
 
-/**
- * Display newly generated partial results to the output div
- */
 function displayPartialResults(partialResults, complete) {
     console.log('Raw partial result:', partialResults);
     const cleanPartial = partialResults.replace(/<end_of_turn>/g, '');
@@ -112,9 +102,6 @@ function displayPartialResults(partialResults, complete) {
     }
 }
 
-/**
- * Modal handling functions
- */
 function openModal() {
     settingsModal.style.display = 'block';
 }
@@ -123,9 +110,6 @@ function closeModalFunc() {
     settingsModal.style.display = 'none';
 }
 
-/**
- * Validate and save settings
- */
 async function saveSettingsFunc() {
     console.log('Save Settings button clicked');
     const newSystemPrompt = systemPromptInput.value.trim() || 'You are a helpful assistant.';
@@ -198,9 +182,6 @@ async function saveSettingsFunc() {
     closeModalFunc();
 }
 
-/**
- * Load model with detailed error handling
- */
 async function loadModel(genaiFileset) {
     try {
         submit.textContent = 'Loading the model...';
@@ -230,9 +211,6 @@ async function loadModel(genaiFileset) {
     }
 }
 
-/**
- * Main function to run LLM Inference
- */
 async function runDemo() {
     try {
         const genaiFileset = await FilesetResolver.forGenAiTasks(
@@ -252,6 +230,69 @@ async function runDemo() {
                 closeModalFunc();
             }
         });
+
+        const installPopup = document.getElementById('install-popup');
+        const installTrigger = document.getElementById('install-trigger');
+        const closePopup = document.getElementById('close-popup');
+        const installComponent = document.getElementById('installComponent');
+        const installNote = document.getElementById('installNote');
+        let deferredPrompt;
+
+        setTimeout(() => {
+            if (!window.matchMedia('(display-mode: standalone)').matches) {
+                installPopup.style.display = 'flex';
+            }
+        }, 3000);
+
+        if (installTrigger) {
+            installTrigger.addEventListener('click', () => {
+                installPopup.style.display = 'flex';
+            });
+        }
+
+        closePopup.addEventListener('click', () => {
+            installPopup.style.display = 'none';
+        });
+
+        installPopup.addEventListener('click', (event) => {
+            if (event.target === installPopup) {
+                installPopup.style.display = 'none';
+            }
+        });
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            console.log('beforeinstallprompt event captured');
+            installComponent.style.display = 'block';
+        });
+
+        installComponent.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                try {
+                    await deferredPrompt.prompt();
+                    const { outcome } = await deferredPrompt.userChoice;
+                    console.log('User response to install prompt:', outcome);
+                    if (outcome === 'accepted') {
+                        console.log('PWA installation accepted');
+                        installPopup.style.display = 'none';
+                    }
+                    deferredPrompt = null;
+                } catch (error) {
+                    console.error('Install prompt failed:', error);
+                }
+            }
+        });
+
+        window.addEventListener('appinstalled', () => {
+            console.log('PWA was installed successfully');
+            installPopup.style.display = 'none';
+            installTrigger.style.display = 'none';
+        });
+
+        if (!('BeforeInstallPromptEvent' in window)) {
+            installNote.style.display = 'block';
+        }
 
         submit.onclick = async () => {
             const userInput = input.value.trim();

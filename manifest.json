@@ -1,7 +1,7 @@
 {
     "name": "AI Assistant",
     "short_name": "AI Assistant",
-    "description": "An AI-powered assistant for event planning and more",
+    "description": "An customizable offline AI-powered assistant",
     "start_url": "/index.html",
     "display": "standalone",
     "background_color": "#f4f4f9",
