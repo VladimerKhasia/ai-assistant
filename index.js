@@ -11,7 +11,7 @@ const settingsModal = document.getElementById('settings-modal');
 const closeModal = document.getElementById('close-modal');
 const saveSettings = document.getElementById('save-settings');
 
-const modelFileName = "assets/gemma3-1b-it-int4.task"; // Ensure this file exists
+const modelFileName = './assets/gemma3-1b-it-int4.task'; // Relative path for GitHub Pages
 
 let conversationHistory = []; // For model input (last 2 turns)
 let uiConversationHistory = []; // For UI display (all turns)
@@ -37,7 +37,7 @@ marked.setOptions({
  */
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('service-worker.js')
+        navigator.serviceWorker.register('./service-worker.js')
             .then(registration => {
                 console.log('Service Worker registered with scope:', registration.scope);
             })
@@ -166,7 +166,7 @@ async function saveSettingsFunc() {
                 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-genai/wasm'
             );
             llmInference = await LlmInference.createFromOptions(genaiFileset, {
-                baseOptions: {modelAssetPath: modelFileName},
+                baseOptions: { modelAssetPath: modelFileName },
                 maxTokens: 2048,
                 randomSeed: 1,
                 topK: newTopK,
@@ -199,12 +199,45 @@ async function saveSettingsFunc() {
 }
 
 /**
+ * Load model with detailed error handling
+ */
+async function loadModel(genaiFileset) {
+    try {
+        submit.textContent = 'Loading the model...';
+        console.log('Attempting to fetch model file:', modelFileName);
+        const response = await fetch(modelFileName, { cache: 'force-cache' });
+        if (!response.ok) {
+            throw new Error(`Failed to fetch model at ${modelFileName}: ${response.statusText}`);
+        }
+        console.log('Model file fetched successfully, size:', response.headers.get('content-length'), 'bytes');
+
+        llmInference = await LlmInference.createFromOptions(genaiFileset, {
+            baseOptions: { modelAssetPath: modelFileName },
+            maxTokens: 2048,
+            randomSeed: 1,
+            topK: currentSettings.topK,
+            temperature: currentSettings.temperature
+        });
+        console.log('Model initialized successfully');
+        submit.disabled = false;
+        submit.textContent = 'Get Response';
+    } catch (error) {
+        console.error('Model loading failed:', error);
+        alert(`Failed to initialize the model: ${error.message}. Please check your internet connection and ensure the model file is accessible.`);
+        submit.textContent = 'Model Load Failed';
+        output.innerHTML = `<div class="error-message">Unable to initialize model: ${error.message}. Please check your internet connection.</div>`;
+        throw error;
+    }
+}
+
+/**
  * Main function to run LLM Inference
  */
 async function runDemo() {
     try {
         const genaiFileset = await FilesetResolver.forGenAiTasks(
-            'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-genai/wasm');
+            'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-genai/wasm'
+        );
 
         settingsToggle.addEventListener('click', openModal);
         closeModal.addEventListener('click', closeModalFunc);
@@ -268,35 +301,12 @@ async function runDemo() {
             }
         });
 
-        submit.textContent = 'Loading the model...';
-        try {
-            const response = await fetch(modelFileName, { cache: 'force-cache' });
-            if (!response.ok) {
-                throw new Error(`Model file not found at ${modelFileName}`);
-            }
-        } catch (error) {
-            console.error('Model file check failed:', error);
-            alert(`Failed to locate model file at ${modelFileName}. Please ensure the file exists and you are online for the first load.`);
-            submit.textContent = 'Model Load Failed';
-            output.innerHTML = '<div class="error-message">Unable to load model. Please check your internet connection.</div>';
-            return;
-        }
-
-        llmInference = await LlmInference.createFromOptions(genaiFileset, {
-            baseOptions: {modelAssetPath: modelFileName},
-            maxTokens: 2048,
-            randomSeed: 1,
-            topK: currentSettings.topK,
-            temperature: currentSettings.temperature
-        });
-
-        submit.disabled = false;
-        submit.textContent = 'Get Response';
+        await loadModel(genaiFileset);
     } catch (error) {
         console.error('Initialization failed:', error);
-        alert('Failed to initialize the model. Please check your internet connection and try again.');
-        submit.textContent = 'Model Load Failed';
-        output.innerHTML = '<div class="error-message">Unable to initialize model. Please check your internet connection.</div>';
+        alert(`Failed to initialize the app: ${error.message}. Please refresh and try again.`);
+        submit.textContent = 'App Load Failed';
+        output.innerHTML = `<div class="error-message">Unable to initialize app: ${error.message}. Please refresh and try again.</div>`;
     }
 }
 

@@ -1,26 +1,40 @@
-const CACHE_NAME = 'ai-assistant-v1';
+const CACHE_NAME = 'ai-assistant-v2'; // Updated cache name to force refresh
 const urlsToCache = [
+    './',
     './index.html',
     './styles.css',
     './index.js',
-    './assets/gemma3-1b-it-int4.task',
     './assets/icon-192.png',
     './assets/icon-512.png',
     'https://cdn.jsdelivr.net/npm/marked/marked.min.js',
     'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-genai/wasm'
 ];
 
-// Install event: Cache all essential files
+// Large model file to cache separately
+const largeModelFile = './assets/gemma3-1b-it-int4.task';
+
+// Install event: Cache essential files and model separately
 self.addEventListener('install', event => {
     console.log('Service Worker: Installing');
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then(cache => {
-                console.log('Service Worker: Caching files');
-                return cache.addAll(urlsToCache);
+                console.log('Service Worker: Caching essential files');
+                return cache.addAll(urlsToCache)
+                    .then(() => {
+                        console.log('Service Worker: Caching large model file');
+                        return fetch(largeModelFile, { cache: 'no-store' })
+                            .then(response => {
+                                if (!response.ok) {
+                                    throw new Error(`Failed to fetch ${largeModelFile}: ${response.statusText}`);
+                                }
+                                return cache.put(largeModelFile, response);
+                            });
+                    });
             })
             .catch(error => {
                 console.error('Service Worker: Cache failed', error);
+                throw error; // Ensure installation fails if caching fails
             })
     );
     self.skipWaiting(); // Force the new service worker to activate
@@ -69,7 +83,7 @@ self.addEventListener('fetch', event => {
                         console.error('Service Worker: Network fetch failed', error);
                         // Fallback for offline HTML page
                         if (event.request.mode === 'navigate') {
-                            return caches.match('/index.html');
+                            return caches.match('./index.html');
                         }
                         throw error;
                     });
