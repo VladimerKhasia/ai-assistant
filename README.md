@@ -2,6 +2,8 @@
 
 # AI Assistant PWA
 
+Try the app online: [AI Assistant PWA](https://vladimerkhasia.github.io/assistant/)
+
 Welcome to the **AI Assistant PWA**, a Progressive Web App (PWA) powered by the Gemma 3 model (`gemma3-1b-it-int4.task`). This app delivers a versatile, installable, and fully offline-capable AI assistant that users can customize with different roles and settings. Designed for seamless local installation on desktops, tablets, and smartphones, the AI Assistant PWA offers a modern, intuitive interface for interactive conversations and task assistance, all running directly in the browser.
 
 ## Features
@@ -45,7 +47,10 @@ The AI Assistant PWA is powered by the `gemma3-1b-it-int4.task` model, a compact
 
 ### Installation Prerequisites
 - A modern web browser with PWA support (e.g., Chrome, Edge, Safari).
-- Initial internet connection to cache the app and model (offline thereafter).
+- Initial internet connection to cache the app and download the model (offline thereafter).
+- **Hugging Face Access Token**: To access the model, you need a Hugging Face account and an access token. If you don’t have an account, sign up for free at [Hugging Face](https://huggingface.co/). Then, generate an access token from your [Hugging Face Settings](https://huggingface.co/settings/tokens) and enter it in the app’s settings modal to download and use the model for free.
+
+
 
 ### Repository
 - **GitHub**: `https://github.com/VladimerKhasia/assistant.git` 
