@@ -1,4 +1,5 @@
 import {FilesetResolver, LlmInference} from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-genai';
+import * as hub from 'https://cdn.jsdelivr.net/npm/@huggingface/hub@1.1.2/+esm';
 
 const input = document.getElementById('input');
 const output = document.getElementById('output');
@@ -6,12 +7,14 @@ const submit = document.getElementById('submit');
 const systemPromptInput = document.getElementById('systemPrompt');
 const temperatureInput = document.getElementById('temperature');
 const topKInput = document.getElementById('topK');
+const hfTokenInput = document.getElementById('hfToken');
 const settingsToggle = document.getElementById('settings-toggle');
 const settingsModal = document.getElementById('settings-modal');
 const closeModal = document.getElementById('close-modal');
 const saveSettings = document.getElementById('save-settings');
-
-const modelFileName = "assets/gemma3-1b-it-int4.task"; // Ensure this file exists
+const progressContainer = document.getElementById('progress-container');
+const progressBar = document.getElementById('progress-bar');
+const progressText = document.getElementById('progress-text');
 
 let conversationHistory = []; // For model input (last 2 turns)
 let uiConversationHistory = []; // For UI display (all turns)
@@ -19,7 +22,8 @@ let llmInference;
 let currentSettings = {
     systemPrompt: systemPromptInput.value.trim(),
     temperature: parseFloat(temperatureInput.value) || 0.2,
-    topK: parseInt(topKInput.value) || 50
+    topK: parseInt(topKInput.value) || 50,
+    hfToken: hfTokenInput.value.trim()
 };
 
 console.log('Initial settings:', currentSettings);
@@ -45,6 +49,101 @@ if ('serviceWorker' in navigator) {
                 console.error('Service Worker registration failed:', error);
             });
     });
+}
+
+/**
+ * Get model asset path by downloading from Hugging Face with progress tracking
+ */
+async function getModelAssetPath() {
+    if (!currentSettings.hfToken) {
+        throw new Error('Hugging Face access token is required. Please enter a valid token in settings.');
+    }
+    const repo = { type: "model", name: "litert-community/Gemma3-1B-IT" };
+    const filePath = "gemma3-1b-it-int4.task";
+    try {
+        console.log('Attempting to download model with token:', currentSettings.hfToken.slice(0, 10) + '...');
+        const response = await hub.downloadFile({ repo, path: filePath, accessToken: currentSettings.hfToken });
+        console.log('Download response status:', response.status, response.statusText);
+        if (!response.ok) {
+            throw new Error(`Failed to download model from Hugging Face: ${response.status} ${response.statusText}`);
+        }
+
+        // Show progress bar in modal
+        progressContainer.style.display = 'block';
+        progressBar.style.width = '0%';
+        progressText.textContent = 'Loading model: 0%';
+
+        const contentLength = response.headers.get('content-length');
+        if (!contentLength) {
+            console.warn('Content-Length header not available, progress bar may not be accurate.');
+        }
+        const total = contentLength ? parseInt(contentLength, 10) : null;
+        let loaded = 0;
+
+        const reader = response.body.getReader();
+        const chunks = [];
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            chunks.push(value);
+            loaded += value.length;
+            if (total) {
+                const percent = Math.min((loaded / total) * 100, 100).toFixed(1);
+                progressBar.style.width = `${percent}%`;
+                progressText.textContent = `Loading model: ${percent}%`;
+            }
+        }
+
+        const modelArrayBuffer = new Uint8Array(loaded);
+        let offset = 0;
+        for (const chunk of chunks) {
+            modelArrayBuffer.set(chunk, offset);
+            offset += chunk.length;
+        }
+
+        const modelBlob = new Blob([modelArrayBuffer], { type: 'application/octet-stream' });
+        return URL.createObjectURL(modelBlob);
+    } catch (error) {
+        console.error('Model download error:', error);
+        progressContainer.style.display = 'none';
+        throw new Error(`Failed to download model from Hugging Face: ${error.message}`);
+    }
+}
+
+/**
+ * Initialize the model with provided settings
+ */
+async function initializeModel() {
+    try {
+        submit.textContent = 'Loading the model...';
+        const genaiFileset = await FilesetResolver.forGenAiTasks(
+            'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-genai/wasm'
+        );
+        const modelAssetPath = await getModelAssetPath();
+        const response = await fetch(modelAssetPath);
+        if (!response.ok) {
+            throw new Error(`Model file not accessible: ${response.status} ${response.statusText}`);
+        }
+        llmInference = await LlmInference.createFromOptions(genaiFileset, {
+            baseOptions: {modelAssetPath: modelAssetPath},
+            maxTokens: 2048,
+            randomSeed: 1,
+            topK: currentSettings.topK,
+            temperature: currentSettings.temperature
+        });
+        progressContainer.style.display = 'none';
+        submit.disabled = false;
+        submit.textContent = 'Get Response';
+        output.innerHTML = '<div class="info-message">Model loaded successfully. Enter a query to get started.</div>';
+    } catch (error) {
+        progressContainer.style.display = 'none';
+        console.error('Model initialization failed:', error);
+        alert(`Failed to load model: ${error.message}. Please ensure a valid Hugging Face token is provided and you have accepted the model terms.`);
+        submit.textContent = 'Model Load Failed';
+        output.innerHTML = `<div class="error-message">Unable to load model: ${error.message}</div>`;
+        submit.disabled = true;
+        throw error;
+    }
 }
 
 /**
@@ -124,13 +223,14 @@ function closeModalFunc() {
 }
 
 /**
- * Validate and save settings
+ * Validate and save settings, then initialize model
  */
 async function saveSettingsFunc() {
     console.log('Save Settings button clicked');
     const newSystemPrompt = systemPromptInput.value.trim() || 'You are a helpful assistant.';
     const newTemperature = parseFloat(temperatureInput.value);
     const newTopK = parseInt(topKInput.value);
+    const newHfToken = hfTokenInput.value.trim();
 
     if (isNaN(newTemperature) || newTemperature < 0 || newTemperature > 1) {
         alert('Temperature must be between 0.0 and 1.0.');
@@ -141,163 +241,111 @@ async function saveSettingsFunc() {
         return;
     }
 
-    const settingsChanged = (
-        newSystemPrompt !== currentSettings.systemPrompt ||
-        newTemperature !== currentSettings.temperature ||
-        newTopK !== currentSettings.topK
-    );
-
     saveSettings.disabled = true;
     saveSettings.textContent = 'Saving...';
-    submit.textContent = 'Reloading model...';
+    submit.textContent = 'Loading model...';
     submit.disabled = true;
 
-    if (settingsChanged) {
-        currentSettings = {
-            systemPrompt: newSystemPrompt,
-            temperature: newTemperature,
-            topK: newTopK
-        };
-        console.log('New settings applied:', currentSettings);
+    currentSettings = {
+        systemPrompt: newSystemPrompt,
+        temperature: newTemperature,
+        topK: newTopK,
+        hfToken: newHfToken
+    };
+    console.log('New settings applied:', currentSettings);
 
-        try {
-            llmInference = null;
-            const genaiFileset = await FilesetResolver.forGenAiTasks(
-                'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-genai/wasm'
-            );
-            llmInference = await LlmInference.createFromOptions(genaiFileset, {
-                baseOptions: {modelAssetPath: modelFileName},
-                maxTokens: 2048,
-                randomSeed: 1,
-                topK: newTopK,
-                temperature: newTemperature
-            });
-            conversationHistory = [];
-            uiConversationHistory = [];
-            output.innerHTML = '';
-            console.log('Model reloaded successfully with new system prompt:', newSystemPrompt);
-            alert('Settings updated, model reloaded, and conversation history reset.');
-        } catch (error) {
-            console.error('Failed to reinitialize model:', error);
-            output.innerHTML = '<div class="error-message">Failed to reload model. Please check your internet connection and try again.</div>';
-            submit.textContent = 'Model Reload Failed';
-            saveSettings.disabled = false;
-            saveSettings.textContent = 'Save Settings';
-            return;
-        }
-    } else {
-        console.log('No settings changed, skipping model reload');
-        alert('No changes detected in settings.');
+    try {
+        llmInference = null;
+        conversationHistory = [];
+        uiConversationHistory = [];
+        output.innerHTML = '';
+        await initializeModel();
+        alert('Settings updated and model loaded successfully.');
+    } catch (error) {
+        console.error('Failed to initialize model:', error);
+        output.innerHTML = `<div class="error-message">Failed to load model: ${error.message}. Please check your Hugging Face token and internet connection.</div>`;
+        submit.textContent = 'Model Load Failed';
+        saveSettings.disabled = false;
+        saveSettings.textContent = 'Save Settings';
+        return;
     }
 
     saveSettings.disabled = false;
     saveSettings.textContent = 'Save Settings';
-    submit.textContent = 'Get Response';
-    submit.disabled = false;
-
     closeModalFunc();
 }
 
 /**
- * Main function to run LLM Inference
+ * Initialize UI and event listeners without loading model
  */
-async function runDemo() {
-    try {
-        const genaiFileset = await FilesetResolver.forGenAiTasks(
-            'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-genai/wasm');
-
-        settingsToggle.addEventListener('click', openModal);
-        closeModal.addEventListener('click', closeModalFunc);
-        if (!saveSettings) {
-            console.error('Save Settings button not found in DOM');
-            alert('Error: Save Settings button is missing. Please check the HTML.');
-            return;
-        }
-        saveSettings.addEventListener('click', saveSettingsFunc);
-        window.addEventListener('click', (event) => {
-            if (event.target === settingsModal) {
-                closeModalFunc();
-            }
-        });
-
-        submit.onclick = async () => {
-            const userInput = input.value.trim();
-            input.value = '';
-            if (!userInput) {
-                output.innerHTML = '<div class="error-message">Please enter a query.</div>';
-                input.focus();
-                return;
-            }
-
-            submit.disabled = true;
-
-            conversationHistory.push({ type: 'user', content: userInput });
-            uiConversationHistory.push({ type: 'user', content: userInput, complete: true });
-
-            if (conversationHistory.length > 2) {
-                conversationHistory = conversationHistory.slice(-2);
-            }
-
-            renderConversation();
-
-            let promptParts = [];
-            promptParts.push(`[BOS]<start_of_turn>user\n${currentSettings.systemPrompt}\n${userInput}\n<end_of_turn>`);
-            promptParts.push('<start_of_turn>model');
-            const fullPrompt = promptParts.join('\n');
-            console.log('Full prompt sent to model:', fullPrompt);
-
-            try {
-                if (!llmInference) {
-                    throw new Error('Model not initialized.');
-                }
-                await llmInference.generateResponse(fullPrompt, displayPartialResults);
-            } catch (error) {
-                console.error('Response generation failed:', error);
-                uiConversationHistory.push({ type: 'model', content: 'Error generating response. Please check your internet connection or try again.', complete: true });
-                renderConversation();
-                submit.disabled = false;
-            }
-        };
-
-        input.addEventListener('keydown', (event) => {
-            if (event.key === 'Enter' && !event.shiftKey && !event.ctrlKey && !event.altKey) {
-                event.preventDefault();
-                if (!submit.disabled) {
-                    submit.click();
-                }
-            }
-        });
-
-        submit.textContent = 'Loading the model...';
-        try {
-            const response = await fetch(modelFileName, { cache: 'force-cache' });
-            if (!response.ok) {
-                throw new Error(`Model file not found at ${modelFileName}`);
-            }
-        } catch (error) {
-            console.error('Model file check failed:', error);
-            alert(`Failed to locate model file at ${modelFileName}. Please ensure the file exists and you are online for the first load.`);
-            submit.textContent = 'Model Load Failed';
-            output.innerHTML = '<div class="error-message">Unable to load model. Please check your internet connection.</div>';
-            return;
-        }
-
-        llmInference = await LlmInference.createFromOptions(genaiFileset, {
-            baseOptions: {modelAssetPath: modelFileName},
-            maxTokens: 2048,
-            randomSeed: 1,
-            topK: currentSettings.topK,
-            temperature: currentSettings.temperature
-        });
-
-        submit.disabled = false;
-        submit.textContent = 'Get Response';
-    } catch (error) {
-        console.error('Initialization failed:', error);
-        alert('Failed to initialize the model. Please check your internet connection and try again.');
-        submit.textContent = 'Model Load Failed';
-        output.innerHTML = '<div class="error-message">Unable to initialize model. Please check your internet connection.</div>';
+function initializeApp() {
+    settingsToggle.addEventListener('click', openModal);
+    closeModal.addEventListener('click', closeModalFunc);
+    if (!saveSettings) {
+        console.error('Save Settings button not found in DOM');
+        alert('Error: Save Settings button is missing. Please check the HTML.');
+        return;
     }
+    saveSettings.addEventListener('click', saveSettingsFunc);
+    window.addEventListener('click', (event) => {
+        if (event.target === settingsModal) {
+            closeModalFunc();
+        }
+    });
+
+    submit.onclick = async () => {
+        const userInput = input.value.trim();
+        input.value = '';
+        if (!userInput) {
+            output.innerHTML = '<div class="error-message">Please enter a query.</div>';
+            input.focus();
+            return;
+        }
+
+        submit.disabled = true;
+
+        conversationHistory.push({ type: 'user', content: userInput });
+        uiConversationHistory.push({ type: 'user', content: userInput, complete: true });
+
+        if (conversationHistory.length > 2) {
+            conversationHistory = conversationHistory.slice(-2);
+        }
+
+        renderConversation();
+
+        let promptParts = [];
+        promptParts.push(`[BOS]<start_of_turn>user\n${currentSettings.systemPrompt}\n${userInput}\n<end_of_turn>`);
+        promptParts.push('<start_of_turn>model');
+        const fullPrompt = promptParts.join('\n');
+        console.log('Full prompt sent to model:', fullPrompt);
+
+        try {
+            if (!llmInference) {
+                throw new Error('Model not initialized. Please save settings with a valid token.');
+            }
+            await llmInference.generateResponse(fullPrompt, displayPartialResults);
+        } catch (error) {
+            console.error('Response generation failed:', error);
+            uiConversationHistory.push({ type: 'model', content: `Error generating response: ${error.message}. Please try again.`, complete: true });
+            renderConversation();
+            submit.disabled = false;
+        }
+    };
+
+    input.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' && !event.shiftKey && !event.ctrlKey && !event.altKey) {
+            event.preventDefault();
+            if (!submit.disabled) {
+                submit.click();
+            }
+        }
+    });
+
+    // Initial UI state
+    submit.disabled = true;
+    submit.textContent = 'Configure Settings';
+    output.innerHTML = '<div class="info-message">Please open settings and provide a Hugging Face access token to load the model.</div>';
 }
 
-runDemo();
+// Start the app
+initializeApp();

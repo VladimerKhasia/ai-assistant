@@ -102,7 +102,9 @@ header h1 {
 }
 
 .settings-section textarea,
-.settings-section input[type="number"] {
+.settings-section input[type="number"],
+.settings-section input[type="text"],
+.settings-section input[type="password"] {
     width: 100%;
     padding: 10px;
     font-size: 1em;
@@ -116,12 +118,16 @@ header h1 {
     height: 100px;
 }
 
-.settings-section input[type="number"] {
-    width: 150px;
+.settings-section input[type="number"],
+.settings-section input[type="text"],
+.settings-section input[type="password"] {
+    width: 100%;
 }
 
 .settings-section textarea:focus,
-.settings-section input[type="number"]:focus {
+.settings-section input[type="number"]:focus,
+.settings-section input[type="text"]:focus,
+.settings-section input[type="password"]:focus {
     outline: none;
     border-color: #0099ff;
     box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
@@ -141,7 +147,7 @@ header h1 {
     font-size: 1.1em;
     font-weight: bold;
     color: #fff;
-    background-color: #0089 situations;
+    background-color: #0089f9;
     border: none;
     border-radius: 8px;
     cursor: pointer;
@@ -155,6 +161,27 @@ header h1 {
 .save-button:disabled {
     background-color: #bdc3c7;
     cursor: not-allowed;
+}
+
+/* Progress bar styling */
+#progress-container {
+    width: 100%;
+    margin: 15px 0;
+    text-align: center;
+}
+
+#progress-bar {
+    width: 0%;
+    height: 18px;
+    background: linear-gradient(to right, #0089f9, #fc0097);
+    border-radius: 8px;
+    transition: width 0.3s ease;
+}
+
+#progress-text {
+    margin-top: 8px;
+    font-size: 0.95em;
+    color: #2c3e50;
 }
 
 /* Main content */
@@ -182,7 +209,7 @@ main {
 }
 
 /* Conversation messages */
-.user-message, .model-message, .error-message {
+.user-message, .model-message, .error-message, .info-message {
     margin-bottom: 15px;
     padding: 10px;
     border-radius: 5px;
@@ -202,6 +229,12 @@ main {
     background-color: #ffe6e6;
     border-left: 4px solid #e74c3c;
     color: #e74c3c;
+}
+
+.info-message {
+    background-color: #e6fffa;
+    border-left: 4px solid #38b2ac;
+    color: #2d3748;
 }
 
 /* Markdown styles */
@@ -302,12 +335,16 @@ footer {
 
     .settings-section textarea,
     .settings-section input[type="number"],
+    .settings-section input[type="text"],
+    .settings-section input[type="password"],
     textarea#input,
     .output-box {
         font-size: 0.9em;
     }
 
     .settings-section input[type="number"],
+    .settings-section input[type="text"],
+    .settings-section input[type="password"],
     .save-button {
         width: 100%;
     }
@@ -316,5 +353,12 @@ footer {
         font-size: 1em;
         padding: 10px 15px;
     }
-}
 
+    #progress-bar {
+        height: 15px;
+    }
+
+    #progress-text {
+        font-size: 0.9em;
+    }
+}

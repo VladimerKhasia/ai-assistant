@@ -4,7 +4,6 @@ const urlsToCache = [
     '/index.html',
     '/styles.css',
     '/index.js',
-    '/assets/gemma3-1b-it-int4.task',
     '/assets/icon-192.png',
     '/assets/icon-512.png',
     'https://cdn.jsdelivr.net/npm/marked/marked.min.js',
