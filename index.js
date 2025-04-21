@@ -209,6 +209,7 @@ function displayPartialResults(partialResults, complete) {
 
         renderConversation();
         submit.disabled = false;
+        submit.textContent = 'Get Response';
     }
 }
 
