@@ -116,6 +116,7 @@ async function getModelAssetPath() {
 async function initializeModel() {
     try {
         submit.textContent = 'Loading the model...';
+        submit.disabled = true;
         const genaiFileset = await FilesetResolver.forGenAiTasks(
             'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-genai/wasm'
         );
@@ -140,8 +141,8 @@ async function initializeModel() {
         console.error('Model initialization failed:', error);
         alert(`Failed to load model: ${error.message}. Please ensure a valid Hugging Face token is provided and you have accepted the model terms.`);
         submit.textContent = 'Model Load Failed';
-        output.innerHTML = `<div class="error-message">Unable to load model: ${error.message}</div>`;
         submit.disabled = true;
+        output.innerHTML = `<div class="error-message">Unable to load model: ${error.message}</div>`;
         throw error;
     }
 }
@@ -223,7 +224,7 @@ function closeModalFunc() {
 }
 
 /**
- * Validate and save settings, then initialize model
+ * Validate and save settings, reusing model if possible
  */
 async function saveSettingsFunc() {
     console.log('Save Settings button clicked');
@@ -243,8 +244,23 @@ async function saveSettingsFunc() {
 
     saveSettings.disabled = true;
     saveSettings.textContent = 'Saving...';
-    submit.textContent = 'Loading model...';
     submit.disabled = true;
+    submit.textContent = 'Processing...';
+
+    const requiresModelReload = (
+        newTemperature !== currentSettings.temperature ||
+        newTopK !== currentSettings.topK ||
+        newHfToken !== currentSettings.hfToken ||
+        !llmInference
+    );
+
+    console.log('Settings comparison:', {
+        newTemperature, oldTemperature: currentSettings.temperature,
+        newTopK, oldTopK: currentSettings.topK,
+        newHfToken: newHfToken.slice(0, 10) + '...', oldHfToken: currentSettings.hfToken.slice(0, 10) + '...',
+        llmInferenceExists: !!llmInference,
+        requiresModelReload
+    });
 
     currentSettings = {
         systemPrompt: newSystemPrompt,
@@ -255,16 +271,29 @@ async function saveSettingsFunc() {
     console.log('New settings applied:', currentSettings);
 
     try {
-        llmInference = null;
+        // Always clear history
         conversationHistory = [];
         uiConversationHistory = [];
         output.innerHTML = '';
-        await initializeModel();
-        alert('Settings updated and model loaded successfully.');
+
+        if (requiresModelReload) {
+            console.log('Model reload required due to changes in token, temperature, topK, or no model loaded.');
+            submit.textContent = 'Loading model...';
+            llmInference = null;
+            await initializeModel();
+            alert('Settings updated and model loaded successfully.');
+        } else {
+            console.log('Reusing existing model with new system prompt.');
+            submit.disabled = false;
+            submit.textContent = 'Get Response';
+            output.innerHTML = '<div class="info-message">System prompt updated. Enter a query to get started.</div>';
+            alert('System prompt and history updated without reloading the model.');
+        }
     } catch (error) {
         console.error('Failed to initialize model:', error);
         output.innerHTML = `<div class="error-message">Failed to load model: ${error.message}. Please check your Hugging Face token and internet connection.</div>`;
         submit.textContent = 'Model Load Failed';
+        submit.disabled = true;
         saveSettings.disabled = false;
         saveSettings.textContent = 'Save Settings';
         return;
@@ -303,6 +332,7 @@ function initializeApp() {
         }
 
         submit.disabled = true;
+        submit.textContent = 'Generating...';
 
         conversationHistory.push({ type: 'user', content: userInput });
         uiConversationHistory.push({ type: 'user', content: userInput, complete: true });
@@ -329,6 +359,7 @@ function initializeApp() {
             uiConversationHistory.push({ type: 'model', content: `Error generating response: ${error.message}. Please try again.`, complete: true });
             renderConversation();
             submit.disabled = false;
+            submit.textContent = 'Get Response';
         }
     };
 
@@ -336,7 +367,10 @@ function initializeApp() {
         if (event.key === 'Enter' && !event.shiftKey && !event.ctrlKey && !event.altKey) {
             event.preventDefault();
             if (!submit.disabled) {
+                console.log('Enter key pressed, triggering submit');
                 submit.click();
+            } else {
+                console.log('Enter key ignored: submit button is disabled');
             }
         }
     });
