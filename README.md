@@ -53,8 +53,8 @@ Welcome to the **AI Assistant PWA**, a Progressive Web App (PWA) powered by the 
   - `service-worker.js`
   - `worker.js`
   - `manifest.json`
-  - `assets/`:
-    - `icon-192.png`, `icon-512.png`: App icons.
+  - `assets/`
+    - `icon-192.png`, `icon-512.png`
 
 ### Local Setup
 1. **Clone the Repository**:
