@@ -41,6 +41,7 @@ Welcome to the **AI Assistant PWA**, a Progressive Web App (PWA) powered by the 
 
 ### Installation Prerequisites
 - A modern web browser with PWA support (e.g., Chrome, Edge, Safari).
+- WebGPU enabled, typically default in modern browsers.
 - Initial internet connection to cache the app and download the model (offline thereafter).
 
 ### Repository
@@ -53,7 +54,6 @@ Welcome to the **AI Assistant PWA**, a Progressive Web App (PWA) powered by the 
   - `worker.js`
   - `manifest.json`
   - `assets/`:
-    - `gemma3-1b-it-int4.task`: Local 528.97 MB model file.
     - `icon-192.png`, `icon-512.png`: App icons.
 
 ### Local Setup
