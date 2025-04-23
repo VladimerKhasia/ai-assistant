@@ -2,7 +2,7 @@
 
 # AI Assistant PWA
 
-Try the app online: [AI Assistant PWA](https://assistant-one-nu.vercel.app/)
+Try the app online: [AI Assistant PWA](https://assistant-tau-rouge.vercel.app/)
 
 Welcome to the **AI Assistant PWA**, a Progressive Web App (PWA) powered by the SmolLM2 model (`HuggingFaceTB/SmolLM2-1.7B-Instruct`). This app delivers a versatile, installable, and fully offline-capable AI assistant that users can customize with different roles and settings. Designed for seamless local installation on desktops, tablets, and smartphones, the AI Assistant PWA offers a modern, intuitive interface for interactive conversations and task assistance, all running directly in the browser.
 
