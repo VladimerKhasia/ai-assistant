@@ -24,14 +24,24 @@
         <div id="settings-modal" class="modal">
             <div class="modal-content">
                 <span id="close-modal" class="close">×</span>
-                <h2>Settings - AI Assistant</h2>
+                <!-- <h2>Settings - AI Assistant</h2> -->
                 <div class="settings-section">
                     <label for="systemPrompt">System Prompt:</label>
                     <textarea id="systemPrompt" placeholder="Enter system prompt" rows="4">You are an expert event planning assistant. Provide concise, practical, and creative suggestions for event planning, covering budgeting, venue, scheduling, vendors, and themes. Ask clarifying questions if needed. Keep responses clear, friendly, and professional.</textarea>
-                    <label for="temperature">Temperature (0.0 to 1.0):</label>
-                    <input type="number" id="temperature" step="0.1" min="0" max="1" value="0.7">
-                    <label for="topK">Top-K (1 to 100):</label>
-                    <input type="number" id="topK" min="1" max="100" value="50">
+                    <div class="parameters-container">
+                        <div class="left-parameters">
+                            <label for="temperature">Temperature (0.0 to 1.0):</label>
+                            <input type="number" id="temperature" step="0.1" min="0" max="1" value="0.7">
+                            <label for="topK">Top-K (1 to 100):</label>
+                            <input type="number" id="topK" min="1" max="100" value="50">
+                        </div>
+                        <div class="right-parameters">
+                            <label for="modelId">Model ID:</label>
+                            <input type="text" id="modelId" value="HuggingFaceTB/SmolLM2-135M-Instruct">
+                            <label for="datatype">Datatype:</label>
+                            <input type="text" id="datatype" value="q4f16">
+                        </div>
+                    </div>
                     <div id="progress-container">
                         <div id="progress-bar"></div>
                         <div id="progress-text">Model not loaded</div>
@@ -54,5 +64,5 @@
         <p>© 2025 AI Assistant</p>
     </footer>
     <script type="module" src="index.js"></script>
-</body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9357da714a46d0ca',t:'MTc0NTUyMTMyOS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>

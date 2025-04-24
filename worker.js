@@ -28,22 +28,40 @@ async function check() {
 }
 
 class TextGenerationPipeline {
-    static model_id = 'HuggingFaceTB/SmolLM2-1.7B-Instruct';
-    static async getInstance(progress_callback = null) {
-        console.log('Worker: Loading tokenizer and model...');
+    static tokenizer = null;
+    static model = null;
+    static currentModelId = null;
+    static currentDatatype = null;
+
+    static async getInstance(model_id, dtype, progress_callback = null) {
+        console.log(`Worker: Loading tokenizer and model with model_id: ${model_id}, dtype: ${dtype}`);
         try {
-            this.tokenizer ??= await AutoTokenizer.from_pretrained(this.model_id, { progress_callback });
+            // Only load new tokenizer and model if model_id or dtype has changed
+            if (model_id !== this.currentModelId || dtype !== this.currentDatatype) {
+                console.log('Worker: Model ID or datatype changed, clearing cache');
+                this.tokenizer = null;
+                this.model = null;
+                this.currentModelId = model_id;
+                this.currentDatatype = dtype;
+            }
+
+            this.tokenizer ??= await AutoTokenizer.from_pretrained(model_id, { progress_callback });
             console.log('Worker: Tokenizer loaded');
-            this.model ??= await AutoModelForCausalLM.from_pretrained(this.model_id, {
-                dtype: 'q4f16',
+            this.model ??= await AutoModelForCausalLM.from_pretrained(model_id, {
+                dtype: dtype,
                 device: 'webgpu',
                 progress_callback,
             });
             console.log('Worker: Model loaded');
-            return Promise.all([this.tokenizer, this.model]);
+            return { tokenizer: this.tokenizer, model: this.model };
         } catch (e) {
             console.error('Worker: Model loading failed:', e);
-            self.postMessage({ status: 'error', data: `Model loading failed: ${e.message || e.toString()}` });
+            // Check if error is related to offline access
+            if (e.message.includes('Failed to fetch') || e.message.includes('NetworkError')) {
+                self.postMessage({ status: 'error', data: 'Offline: Model files not cached. Please connect to the internet to cache the model.' });
+            } else {
+                self.postMessage({ status: 'error', data: `Model loading failed: ${e.message || e.toString()}` });
+            }
             throw e;
         }
     }
@@ -55,7 +73,11 @@ let past_key_values_cache = null;
 async function generate({ messages, temperature, topK }) {
     console.log('Worker: Generating with messages:', messages, 'temperature:', temperature, 'topK:', topK);
     try {
-        const [tokenizer, model] = await TextGenerationPipeline.getInstance();
+        const pipeline = await TextGenerationPipeline.getInstance(
+            TextGenerationPipeline.currentModelId || 'HuggingFaceTB/SmolLM2-135M-Instruct', //'HuggingFaceTB/SmolLM2-1.7B-Instruct',
+            TextGenerationPipeline.currentDatatype || 'q4f16'
+        );
+        const { tokenizer, model } = pipeline;
         const inputs = tokenizer.apply_chat_template(messages, {
             add_generation_prompt: true,
             return_dict: true,
@@ -86,7 +108,7 @@ async function generate({ messages, temperature, topK }) {
         const { past_key_values } = await model.generate({
             ...inputs,
             past_key_values: past_key_values_cache,
-            max_new_tokens: 1024,
+            max_new_tokens: 5000,
             do_sample: true,
             temperature,
             top_k: topK,
@@ -107,24 +129,48 @@ async function generate({ messages, temperature, topK }) {
     }
 }
 
-async function load() {
-    console.log('Worker: Starting model load...');
+async function load({ modelId, datatype }) {
+    console.log('Worker: Starting model load with modelId:', modelId, 'datatype:', datatype);
     self.postMessage({ status: 'loading', data: 'Loading model...' });
     try {
-        await TextGenerationPipeline.getInstance((x) => {
+        const pipeline = await TextGenerationPipeline.getInstance(modelId, datatype, (x) => {
             console.log('Worker: Progress update:', x);
-            self.postMessage(x);
+            // Ensure progress update includes loaded and total
+            if (x.status === 'progress' && x.loaded && x.total) {
+                self.postMessage({
+                    status: 'progress',
+                    progress: {
+                        loaded: x.loaded,
+                        total: x.total,
+                        file: x.file || 'unknown'
+                    }
+                });
+            } else if (x.status === 'initiate' || x.status === 'download') {
+                self.postMessage({
+                    status: 'progress',
+                    progress: {
+                        loaded: 0,
+                        total: 100,
+                        file: x.file || 'initializing'
+                    }
+                });
+            }
         });
 
         self.postMessage({ status: 'loading', data: 'Compiling shaders and warming up model...' });
-        const [tokenizer, model] = await TextGenerationPipeline.getInstance();
+        const { tokenizer, model } = pipeline;
         const inputs = tokenizer('a');
         await model.generate({ ...inputs, max_new_tokens: 1 });
         console.log('Worker: Model loaded and warmed up');
         self.postMessage({ status: 'ready' });
     } catch (e) {
         console.error('Worker: Model loading failed:', e);
-        self.postMessage({ status: 'error', data: `Model loading failed: ${e.message || e.toString()}` });
+        // Check if error is related to offline access
+        if (e.message.includes('Failed to fetch') || e.message.includes('NetworkError')) {
+            self.postMessage({ status: 'error', data: 'Offline: Model files not cached. Please connect to the internet to cache the model.' });
+        } else {
+            self.postMessage({ status: 'error', data: `Model loading failed: ${e.message || e.toString()}` });
+        }
     }
 }
 
@@ -136,7 +182,7 @@ self.addEventListener('message', async (e) => {
             check();
             break;
         case 'load':
-            load();
+            load(data);
             break;
         case 'generate':
             generate(data);

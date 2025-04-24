@@ -118,12 +118,6 @@ header h1 {
     height: 100px;
 }
 
-.settings-section input[type="number"],
-.settings-section input[type="text"],
-.settings-section input[type="password"] {
-    width: 100%;
-}
-
 .settings-section textarea:focus,
 .settings-section input[type="number"]:focus,
 .settings-section input[type="text"]:focus,
@@ -175,7 +169,7 @@ header h1 {
     height: 18px;
     background: linear-gradient(to right, #0089f9, #fc0097);
     border-radius: 8px;
-    transition: width 0.3s ease;
+    transition: width 0.5s ease-in-out; /* Smooth transition for width changes */
 }
 
 #progress-text {
@@ -312,6 +306,33 @@ footer {
     color: #7f8c8d;
 }
 
+/* Two-column layout for parameters */
+.parameters-container {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+}
+
+.left-parameters, .right-parameters {
+    width: 48%;
+}
+
+.left-parameters label, .right-parameters label {
+    display: block;
+    font-size: 1em;
+    margin: 10px 0 5px;
+    color: #2c3e50;
+}
+
+.left-parameters input[type="number"], .right-parameters input[type="text"] {
+    width: 100%;
+    padding: 10px;
+    font-size: 1em;
+    border: 1px solid #dcdcdc;
+    border-radius: 8px;
+    background-color: #fff;
+}
+
 /* Responsive design */
 @media (max-width: 600px) {
     header h1 {
@@ -340,13 +361,6 @@ footer {
     textarea#input,
     .output-box {
         font-size: 0.9em;
-    }
-
-    .settings-section input[type="number"],
-    .settings-section input[type="text"],
-    .settings-section input[type="password"],
-    .save-button {
-        width: 100%;
     }
 
     button#submit {

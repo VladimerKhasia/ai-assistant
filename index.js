@@ -1,12 +1,12 @@
-// Wait for DOM to load
 document.addEventListener('DOMContentLoaded', () => {
     const input = document.getElementById('input');
     const output = document.getElementById('output');
     const submit = document.getElementById('submit');
-    const interrupt = document.getElementById('interrupt');
     const systemPromptInput = document.getElementById('systemPrompt');
     const temperatureInput = document.getElementById('temperature');
     const topKInput = document.getElementById('topK');
+    const modelIdInput = document.getElementById('modelId');
+    const datatypeInput = document.getElementById('datatype');
     const settingsToggle = document.getElementById('settings-toggle');
     const settingsModal = document.getElementById('settings-modal');
     const closeModal = document.getElementById('close-modal');
@@ -28,7 +28,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentSettings = {
         systemPrompt: systemPromptInput.value.trim(),
         temperature: parseFloat(temperatureInput.value),
-        topK: parseInt(topKInput.value)
+        topK: parseInt(topKInput.value),
+        modelId: modelIdInput.value.trim(),
+        datatype: datatypeInput.value.trim()
     };
 
     console.log('Initial settings:', currentSettings);
@@ -49,6 +51,8 @@ document.addEventListener('DOMContentLoaded', () => {
             navigator.serviceWorker.register('/service-worker.js')
                 .then(registration => {
                     console.log('Service Worker registered with scope:', registration.scope);
+                    // Check for updates to ensure latest service worker is active
+                    registration.update();
                 })
                 .catch(error => {
                     console.error('Service Worker registration failed:', error);
@@ -92,13 +96,33 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
+     * Check if the app is offline
+     */
+    function isOffline() {
+        return !navigator.onLine;
+    }
+
+    /**
      * Initialize the Web Worker with retry logic and cache busting
      */
     async function initializeWorker(retries = 3, delay = 2000) {
+        // Check if offline and adjust UI
+        if (isOffline()) {
+            requestAnimationFrame(() => {
+                if (progressContainer && progressBar && progressText) {
+                    progressContainer.style.display = 'block';
+                    progressBar.style.width = '0%';
+                    progressText.textContent = 'Offline: Attempting to load cached model...';
+                }
+                if (output) {
+                    output.innerHTML = '<div class="info-message">Offline mode: Loading cached model...</div>';
+                }
+            });
+        }
+
         for (let attempt = 1; attempt <= retries; attempt++) {
             console.log(`Main: Initializing worker (attempt ${attempt}/${retries})`);
             try {
-                // Add cache-busting query parameter to avoid caching worker.js
                 worker = new Worker(`/worker.js?t=${Date.now()}`, { type: 'module' });
                 worker.onmessage = (e) => {
                     console.log('Main: Worker message:', e.data);
@@ -108,7 +132,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (output) {
                             output.innerHTML = `<div class="info-message">WebGPU supported: ${data || 'GPU Adapter'}. Loading model...</div>`;
                         }
-                        // Initialize progress bar
                         requestAnimationFrame(() => {
                             if (progressContainer && progressBar && progressText) {
                                 progressContainer.style.display = 'block';
@@ -116,7 +139,13 @@ document.addEventListener('DOMContentLoaded', () => {
                                 progressText.textContent = 'Checking WebGPU...';
                             }
                         });
-                        worker.postMessage({ type: 'load' });
+                        worker.postMessage({ 
+                            type: 'load',
+                            data: {
+                                modelId: currentSettings.modelId,
+                                datatype: currentSettings.datatype
+                            }
+                        });
                     } else if (status === 'error') {
                         if (output) {
                             output.innerHTML = `<div class="error-message">Error: ${data}</div>`;
@@ -136,21 +165,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     } else if (status === 'progress') {
                         console.log('Main: Progress update received:', progress);
                         requestAnimationFrame(() => {
-                            if (progress && progress.loaded && progress.total) {
+                            if (progress && progress.loaded !== undefined && progress.total) {
                                 const percent = Math.min((progress.loaded / progress.total) * 100, 100).toFixed(1);
                                 if (progressBar) {
                                     progressBar.style.width = `${percent}%`;
                                 }
                                 if (progressText) {
-                                    progressText.textContent = `Loading model: ${percent}%`;
+                                    progressText.textContent = `Loading ${progress.file || 'model'}: ${percent}%`;
                                 }
                             } else {
-                                // Fallback for incomplete progress data
                                 if (progressBar) {
-                                    progressBar.style.width = '10%'; // Indicate activity
+                                    progressBar.style.width = '5%';
                                 }
                                 if (progressText) {
-                                    progressText.textContent = 'Loading model...';
+                                    progressText.textContent = `Initializing ${progress.file || 'model'}...`;
                                 }
                             }
                             if (progressContainer) {
@@ -186,9 +214,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     } else if (status === 'start') {
                         uiConversationHistory.push({ type: 'model', content: '', complete: false });
                         renderConversation();
-                        if (interrupt) {
-                            interrupt.style.display = 'block';
-                        }
                     } else if (status === 'update') {
                         const lastTurn = uiConversationHistory[uiConversationHistory.length - 1];
                         lastTurn.content = (lastTurn.content || '') + workerOutput;
@@ -198,7 +223,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         lastTurn.content = workerOutput[0];
                         lastTurn.complete = true;
                         conversationHistory.push({ role: 'assistant', content: workerOutput[0] });
-                        // Limit conversation history to last 5 turns (10 entries: 5 user + 5 assistant)
                         if (conversationHistory.length > 10) {
                             conversationHistory = conversationHistory.slice(-10);
                             uiConversationHistory = uiConversationHistory.slice(-10);
@@ -207,9 +231,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (submit) {
                             submit.disabled = false;
                             submit.textContent = 'Get Response';
-                        }
-                        if (interrupt) {
-                            interrupt.style.display = 'none';
                         }
                     }
                 };
@@ -231,12 +252,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         submit.disabled = true;
                         submit.textContent = 'Error Occurred';
                     }
+                    // Ensure Save Settings remains responsive
+                    if (saveSettings) {
+                        saveSettings.disabled = false;
+                        saveSettings.textContent = 'Save Settings';
+                    }
                 };
 
-                // Start WebGPU check
-                if (submit) {
-                    submit.textContent = 'Checking WebGPU...';
-                }
                 worker.postMessage({ type: 'check' });
                 return; // Success
             } catch (error) {
@@ -256,6 +278,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         submit.disabled = true;
                         submit.textContent = 'Initialization Failed';
                     }
+                    // Ensure Save Settings remains responsive
+                    if (saveSettings) {
+                        saveSettings.disabled = false;
+                        saveSettings.textContent = 'Save Settings';
+                    }
                     return;
                 }
                 await new Promise(resolve => setTimeout(resolve, delay));
@@ -267,18 +294,28 @@ document.addEventListener('DOMContentLoaded', () => {
      * Validate and save settings
      */
     async function saveSettingsFunc() {
-        console.log('Save Settings button clicked');
+        console.log('Save Settings button clicked or Enter pressed');
         const newSystemPrompt = systemPromptInput.value.trim() || 'You are a helpful assistant.';
         const newTemperature = parseFloat(temperatureInput.value);
         const newTopK = parseInt(topKInput.value);
+        const newModelId = modelIdInput.value.trim();
+        const newDatatype = datatypeInput.value.trim();
 
         // Validate inputs
-        if (newTemperature < 0 || newTemperature > 1 || isNaN(newTemperature)) {
+        if (isNaN(newTemperature) || newTemperature < 0 || newTemperature > 1) {
             alert('Temperature must be between 0.0 and 1.0');
             return;
         }
-        if (newTopK < 1 || newTopK > 100 || isNaN(newTopK)) {
+        if (isNaN(newTopK) || newTopK < 1 || newTopK > 100) {
             alert('Top-K must be between 1 and 100');
+            return;
+        }
+        if (!newModelId) {
+            alert('Model ID cannot be empty');
+            return;
+        }
+        if (!newDatatype) {
+            alert('Datatype cannot be empty');
             return;
         }
 
@@ -294,7 +331,9 @@ document.addEventListener('DOMContentLoaded', () => {
         currentSettings = {
             systemPrompt: newSystemPrompt,
             temperature: newTemperature,
-            topK: newTopK
+            topK: newTopK,
+            modelId: newModelId,
+            datatype: newDatatype
         };
         console.log('New settings applied:', currentSettings);
 
@@ -351,7 +390,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
-     * Initialize UI and event listeners
+     * Initialize UI and eventListeners
      */
     function initializeApp() {
         if (settingsToggle) {
@@ -369,20 +408,16 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        if (interrupt) {
-            interrupt.addEventListener('click', () => {
-                if (worker) {
-                    worker.postMessage({ type: 'interrupt' });
+        // Add Enter key support for settings modal
+        if (settingsModal) {
+            settingsModal.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter' && !event.shiftKey && !event.ctrlKey && !event.altKey) {
+                    event.preventDefault();
+                    if (saveSettings && !saveSettings.disabled) {
+                        console.log('Enter key pressed in settings modal, triggering save');
+                        saveSettingsFunc();
+                    }
                 }
-                if (submit) {
-                    submit.disabled = false;
-                    submit.textContent = 'Get Response';
-                }
-                if (interrupt) {
-                    interrupt.style.display = 'none';
-                }
-                uiConversationHistory[uiConversationHistory.length - 1].complete = true;
-                renderConversation();
             });
         }
 
@@ -404,7 +439,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 conversationHistory.push({ role: 'user', content: userInput });
                 uiConversationHistory.push({ type: 'user', content: userInput, complete: true });
 
-                // Limit conversation history to last 5 turns (10 entries: 5 user + 5 assistant)
                 if (conversationHistory.length > 10) {
                     conversationHistory = conversationHistory.slice(-10);
                     uiConversationHistory = uiConversationHistory.slice(-10);
@@ -439,9 +473,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         submit.disabled = false;
                         submit.textContent = 'Get Response';
                     }
-                    if (interrupt) {
-                        interrupt.style.display = 'none';
-                    }
                 }
             };
         }
@@ -451,7 +482,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (event.key === 'Enter' && !event.shiftKey && !event.ctrlKey && !event.altKey) {
                     event.preventDefault();
                     if (submit && !submit.disabled) {
-                        console.log('Enter key pressed, triggering submit');
+                        console.log('Enter key pressed in input, triggering submit');
                         submit.click();
                     }
                 }
@@ -465,7 +496,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 submit.textContent = 'Configure Settings';
             }
             if (output) {
-                output.innerHTML = '<div class="info-message">Please open settings to load the model.</div>';
+                output.innerHTML = '<div class="info-message">Please open settings to configure and load the model.</div>';
             }
             if (progressContainer && progressBar && progressText) {
                 progressContainer.style.display = 'block';
@@ -474,8 +505,15 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Initialize worker on page load
-        initializeWorker();
+        // Initialize worker to ensure app responsiveness
+        initializeWorker().catch(error => {
+            console.error('Initial worker initialization failed:', error);
+            if (isOffline()) {
+                alert('Offline: Failed to load cached model. Please connect to the internet to cache the model files.');
+            } else {
+                alert('Failed to start the app. Please check your internet connection or browser compatibility.');
+            }
+        });
     }
 
     // Start the app
