@@ -74,7 +74,7 @@ async function generate({ messages, temperature, topK }) {
     console.log('Worker: Generating with messages:', messages, 'temperature:', temperature, 'topK:', topK);
     try {
         const pipeline = await TextGenerationPipeline.getInstance(
-            TextGenerationPipeline.currentModelId || 'HuggingFaceTB/SmolLM2-135M-Instruct', //'HuggingFaceTB/SmolLM2-1.7B-Instruct',
+            TextGenerationPipeline.currentModelId || 'HuggingFaceTB/SmolLM2-1.7B-Instruct',
             TextGenerationPipeline.currentDatatype || 'q4f16'
         );
         const { tokenizer, model } = pipeline;

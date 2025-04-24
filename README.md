@@ -4,7 +4,9 @@
 
 Try the app online: [AI Assistant PWA](https://assistant-tau-rouge.vercel.app/)
 
-Welcome to the **AI Assistant PWA**, a Progressive Web App (PWA) powered by the SmolLM2 model (`HuggingFaceTB/SmolLM2-1.7B-Instruct`). This app delivers a versatile, installable, and fully offline-capable AI assistant that users can customize with different roles and settings. Designed for seamless local installation on desktops, tablets, and smartphones, the AI Assistant PWA offers a modern, intuitive interface for interactive conversations and task assistance, all running directly in the browser.
+Welcome to the **AI Assistant PWA**, a Progressive Web App (PWA) powered by freely accessible ONNX text-to-text models of your choice (e.g., HuggingFaceTB/SmolLM2-1.7B-Instruct, onnx-community/Qwen2.5-Coder-1.5B-Instruct, etc.). This app provides a versatile, installable, and fully offline-capable AI assistant, customizable with various roles and settings. Designed for effortless local installation on desktops, tablets, and smartphones, the AI Assistant PWA features a modern, user-friendly interface for interactive conversations and task support, all seamlessly running within your browser.
+
+
 
 ## Features
 
@@ -19,6 +21,8 @@ Welcome to the **AI Assistant PWA**, a Progressive Web App (PWA) powered by the 
 
 - **Adjustable Settings**:
   - Fine-tune AI behavior with configurable parameters:
+    - **Model ID**: Which model to load from Hugging Face.
+    - **Datatype**: Data type of downloaded model weights.
     - **Temperature**: Control response creativity (0.0–1.0, default: 0.2).
     - **Top-K**: Adjust response diversity (1–100, default: 50).
   - Accessible through an intuitive settings modal.
@@ -34,7 +38,7 @@ Welcome to the **AI Assistant PWA**, a Progressive Web App (PWA) powered by the 
   - Clean, user-friendly design with a hamburger menu for settings access.
   - Smooth conversation history display, distinguishing user and assistant messages.
 
-## Model Details
+## Default Model Details
 - **Model Name**: `HuggingFaceTB/SmolLM2-1.7B-Instruct`
 - **Description**: A 1.7-billion parameter model.
 - **Source**: Downloaded from [Hugging Face](https://huggingface.co/HuggingFaceTB/SmolLM2-1.7B-Instruct).
