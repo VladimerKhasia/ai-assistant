@@ -47,7 +47,7 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
     console.log('Service Worker: Fetching', event.request.url);
     event.respondWith(
-        caches.match(event.request)
+        caches.match(event.request, { ignoreSearch: true })
             .then(response => {
                 if (response) {
                     console.log('Service Worker: Serving from cache', event.request.url);
